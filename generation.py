@@ -1,16 +1,22 @@
-# generation.py
+#generates a response by seding the retrieved data to the LLM
+import os
+import google.generativeai as genai
+import vector
+from dotenv import load_dotenv
 
-from transformers import pipeline
+load_dotenv()
+# Configure Gemini API
+genai.configure(api_key=os.getenv('GOOGLE_API_KEY'))
+def generate_response(domain,query):
+    retrieved_docs = vector.retrieve_docs(domain,query)
+    context = "\n".join(retrieved_docs)
 
-# Load a basic text-generation model (e.g., GPT-2)
-generator = pipeline("text-generation", model="gpt2")
+    prompt = f"""You are a customer support assistant. Use the following knowledge base to answer the query:
+    {context}
 
-def generate_response(domain_or_query, prompt=None):
-    """
-    If prompt is provided, use it for text generation (backend API).
-    If only domain_or_query is given, use it for Streamlit (frontend).
-    """
-    input_text = prompt if prompt else domain_or_query
+    User: {query}
+    Assistant:"""
 
-    generated = generator(input_text, max_length=200, num_return_sequences=1)
-    return generated[0]['generated_text']
+    response = genai.GenerativeModel("gemini-1.5-flash").generate_content(prompt)
+
+    return response.text
